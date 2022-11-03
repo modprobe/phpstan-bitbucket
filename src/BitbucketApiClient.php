@@ -9,17 +9,20 @@ use Ramsey\Uuid\UuidInterface;
 
 class BitbucketApiClient
 {
+    /**
+     * Please note this should be http instead of https because of the proxy.
+     */
     private const BASE_URL = 'http://api.bitbucket.org/2.0/';
     private const PROXY_URL = 'http://localhost:29418';
 
     private const REPORT_TITLE = 'PHPStan Report';
 
-    private $httpClient;
+    private Client $httpClient;
 
     public function __construct(string $baseUrl = self::BASE_URL, string $proxyUrl = self::PROXY_URL)
     {
         $this->httpClient = new Client([
-            'base_uri'            => $baseUrl,
+            'base_uri' => $baseUrl,
             RequestOptions::PROXY => $proxyUrl,
         ]);
     }
@@ -28,16 +31,16 @@ class BitbucketApiClient
     {
         $payload = $numberOfIssues > 0
             ? [
-                'title'       => self::REPORT_TITLE,
-                'details'     => sprintf('This PR introduces %d new issue(s).', $numberOfIssues),
+                'title' => self::REPORT_TITLE,
+                'details' => sprintf('This PR introduces %d new issue(s).', $numberOfIssues),
                 'report_type' => 'BUG',
-                'result'      => 'FAILED',
+                'result' => 'FAILED',
             ]
             : [
-                'title'       => self::REPORT_TITLE,
-                'details'     => 'This PR introduces no new issues.',
+                'title' => self::REPORT_TITLE,
+                'details' => 'This PR introduces no new issues.',
                 'report_type' => 'BUG',
-                'result'      => 'PASSED',
+                'result' => 'PASSED',
             ];
 
         $result = $this->httpClient->put($this->buildReportUrl(), [
@@ -57,7 +60,7 @@ class BitbucketApiClient
     ): UuidInterface {
         $payload = [
             'annotation_type' => 'BUG',
-            'summary'         => $summary,
+            'summary' => $summary,
         ];
 
         if ($filePath !== null) {
@@ -79,16 +82,12 @@ class BitbucketApiClient
 
     private function buildReportUrl(?UuidInterface $uuid = null): string
     {
-        $namespace = getenv('BITBUCKET_REPO_OWNER');
-        $slug = getenv('BITBUCKET_REPO_SLUG');
-        $commitHash = getenv('BITBUCKET_COMMIT');
-
         return sprintf(
             'repositories/%s/%s/commit/%s/reports/%s',
-            $namespace,
-            $slug,
-            $commitHash,
-            $uuid !== null ? '{' . $uuid->toString() . '}' : $this->buildReportName()
+            BitbucketConfig::repoOwner(),
+            BitbucketConfig::repoSlug(),
+            BitbucketConfig::commit(),
+            $uuid !== null ? '{'.$uuid->toString().'}' : $this->buildReportName()
         );
     }
 
@@ -103,15 +102,11 @@ class BitbucketApiClient
 
     private function buildReportName(): string
     {
-        $repoSlug = getenv('BITBUCKET_REPO_SLUG');
-
-        return $repoSlug . '-' . Uuid::uuid4()->toString();
+        return BitbucketConfig::repoSlug().'-'.Uuid::uuid4()->toString();
     }
 
     private function buildAnnotationName(): string
     {
-        $repoSlug = getenv('BITBUCKET_REPO_SLUG');
-
-        return $repoSlug . '-annotation-' . Uuid::uuid4()->toString();
+        return BitbucketConfig::repoSlug().'-annotation-'.Uuid::uuid4()->toString();
     }
 }

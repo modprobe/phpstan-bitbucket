@@ -9,14 +9,13 @@ use PHPStan\File\ParentDirectoryRelativePathHelper;
 
 class BitbucketErrorFormatter implements ErrorFormatter
 {
-    private $relativePathHelper;
-    private $apiClient;
+    private ParentDirectoryRelativePathHelper $relativePathHelper;
+    private BitbucketApiClient $apiClient;
 
     public function __construct()
     {
-        RequirementsValidator::validate();
-
-        $this->relativePathHelper = new ParentDirectoryRelativePathHelper(getenv('BITBUCKET_CLONE_DIR'));
+        // @phpstan-ignore-next-line
+        $this->relativePathHelper = new ParentDirectoryRelativePathHelper(BitbucketConfig::cloneDir());
         $this->apiClient = new BitbucketApiClient();
     }
 
@@ -28,6 +27,7 @@ class BitbucketErrorFormatter implements ErrorFormatter
             $this->apiClient->addAnnotation(
                 $reportUuid,
                 $error->getMessage(),
+                // @phpstan-ignore-next-line
                 $this->relativePathHelper->getRelativePath($error->getFile()),
                 $error->getLine()
             );
